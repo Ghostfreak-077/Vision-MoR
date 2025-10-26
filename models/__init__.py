@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from components.basicComponents import PatchEmbedding, MultiHeadAttention, MLP, TransformerBlock
+from components.morComponents import MoRRouter, MoRRecursiveBlock
 
 class VisionTransformer(nn.Module):
     def __init__(self, img_size=32, patch_size=4, in_channels=3, num_classes=10,
