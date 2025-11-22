@@ -217,7 +217,7 @@ def compare():
         
         train_metrics = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, 
                                     is_mor=False, tracker=tracker)
-        test_metrics = evaluate(vit_model, testloader, DEVICE, 
+        test_metrics = evaluate(vit_model, testloader, classifier, DEVICE,
                                is_mor=False, tracker=tracker)
         
         vit_train_history.append(train_metrics)
@@ -280,7 +280,7 @@ def compare():
         
         train_metrics = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, 
                                     is_mor=True, tracker=tracker)
-        test_metrics = evaluate(mor_model, testloader, DEVICE, 
+        test_metrics = evaluate(mor_model, testloader, classifier, DEVICE,
                                is_mor=True, tracker=tracker)
         
         mor_train_history.append(train_metrics)
