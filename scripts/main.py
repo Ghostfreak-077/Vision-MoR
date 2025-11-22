@@ -82,7 +82,7 @@ def main():
     
     vit_model = ViTModel(config).to(DEVICE)
     vit_optimizer = torch.optim.AdamW(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
-    classifier = nn.Linear(config.hidden_size, config.num_labels)
+    classifier = nn.Linear(config.hidden_size, config.num_labels).to(DEVICE)
     
     vit_train_accs = []
     vit_test_accs = []

@@ -2,7 +2,7 @@ from collections import defaultdict
 import time
 import torch
 from torch import nn
-from models import MoRVisionTransformer
+from models.mor_model import MoRViTModel
 from models import VisionTransformer
 import torchvision
 import numpy as np
@@ -10,6 +10,7 @@ from scripts.training_scripts import train_epoch
 from scripts.evaluating_scripts import evaluate
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
+from transformers import ViTConfig, ViTModel
 from torch.utils.data import DataLoader
 
 class MetricsTracker:
@@ -49,7 +50,7 @@ class MetricsTracker:
         # Warmup
         with torch.no_grad():
             for _ in range(10):
-                if isinstance(model, MoRVisionTransformer):
+                if isinstance(model, MoRViTModel):
                     _ = model(dummy_input)
                 else:
                     _ = model(dummy_input)
@@ -63,7 +64,7 @@ class MetricsTracker:
             for _ in range(num_runs):
                 start = time.perf_counter()
                 
-                if isinstance(model, MoRVisionTransformer):
+                if isinstance(model, MoRViTModel):
                     _ = model(dummy_input)
                 else:
                     _ = model(dummy_input)
@@ -102,7 +103,7 @@ class MetricsTracker:
                 hooks.append(module.register_forward_hook(count_ops_hook))
         
         with torch.no_grad():
-            if isinstance(model, MoRVisionTransformer):
+            if isinstance(model, MoRViTModel):
                 _ = model(dummy_input)
             else:
                 _ = model(dummy_input)
@@ -156,16 +157,23 @@ def compare():
     testloader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
     
     # Model configurations
-    model_config = {
-        'img_size': 32,
-        'patch_size': 4,
-        'in_channels': 3,
-        'num_classes': 10,
-        'embed_dim': 256,
-        'depth': 6,
-        'num_heads': 8,
-        'mlp_ratio': 4.0
-    }
+    config = ViTConfig(
+        hidden_size=256,
+        num_hidden_layers=6,
+        num_attention_heads=8,
+        intermediate_size=256 * 4,
+        hidden_act="gelu",
+        hidden_dropout_prob=0.0,
+        attention_probs_dropout_prob=0.0,
+        initializer_range=0.02,
+        layer_norm_eps=1e-12,
+        image_size=32,
+        patch_size=4,
+        num_channels=3,
+        num_labels=10,
+        # MoR specific config
+        num_recursions=3,
+    )
     
     # ========================================================================
     # Train Standard ViT
@@ -174,8 +182,9 @@ def compare():
     print(f"{'STANDARD VISION TRANSFORMER':^80}")
     print("="*80)
     
-    vit_model = VisionTransformer(**model_config).to(DEVICE)
+    vit_model = ViTModel(config).to(DEVICE)
     vit_optimizer = torch.optim.AdamW(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
+    classifier = nn.Linear(config.hidden_size, config.num_labels).to(DEVICE)
     
     # Get model statistics
     vit_params = tracker.get_model_params(vit_model)
@@ -206,7 +215,7 @@ def compare():
         print(f"\nEpoch {epoch+1}/{EPOCHS}")
         print("-"*40)
         
-        train_metrics = train_epoch(vit_model, trainloader, vit_optimizer, DEVICE, 
+        train_metrics = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, 
                                     is_mor=False, tracker=tracker)
         test_metrics = evaluate(vit_model, testloader, DEVICE, 
                                is_mor=False, tracker=tracker)
@@ -229,11 +238,11 @@ def compare():
     print(f"{'MIXTURE-OF-RECURSIONS VISION TRANSFORMER':^80}")
     print("="*80)
     
-    mor_config = model_config.copy()
+    mor_config = config.copy()
     mor_config['num_recursions'] = 3
     mor_config['use_kv_sharing'] = False
     
-    mor_model = MoRVisionTransformer(**mor_config).to(DEVICE)
+    mor_model = MoRViTModel(config).to(DEVICE)
     mor_optimizer = torch.optim.AdamW(mor_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
     
     # Get model statistics
@@ -269,7 +278,7 @@ def compare():
         print(f"\nEpoch {epoch+1}/{EPOCHS}")
         print("-"*40)
         
-        train_metrics = train_epoch(mor_model, trainloader, mor_optimizer, DEVICE, 
+        train_metrics = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, 
                                     is_mor=True, tracker=tracker)
         test_metrics = evaluate(mor_model, testloader, DEVICE, 
                                is_mor=True, tracker=tracker)
