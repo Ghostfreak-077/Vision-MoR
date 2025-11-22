@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import numpy as np
 
-def train_epoch(model, loader, optimizer, device, is_mor=False, tracker=None):
+def train_epoch(model, loader, optimizer, classifier, device, is_mor=False, tracker=None):
     model.train()
     total_loss = 0
     total_aux_loss = 0
@@ -23,14 +23,13 @@ def train_epoch(model, loader, optimizer, device, is_mor=False, tracker=None):
         images, labels = images.to(device), labels.to(device)
         
         optimizer.zero_grad()
+
         
-        if is_mor:
-            logits, aux_loss = model(images)
-            loss = F.cross_entropy(logits, labels) + aux_loss
-            total_aux_loss += aux_loss.item()
-        else:
-            logits = model(images)
-            loss = F.cross_entropy(logits, labels)
+        last_hidden_state = model(images).last_hidden_state
+        cls = last_hidden_state[:, 0]  # (B, hidden_size)
+        logits = classifier(cls)
+
+        loss = F.cross_entropy(logits, labels)
         
         loss.backward()
         optimizer.step()

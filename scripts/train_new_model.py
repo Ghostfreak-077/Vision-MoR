@@ -1,18 +1,13 @@
-from models.mor_model import MoRViTModel
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from models import VisionTransformer, MoRVisionTransformer
+from models.mor_model import MoRViTModel
 from scripts.training_scripts import train_epoch
 from scripts.evaluating_scripts import evaluate
-import time
-import numpy as np
-from tqdm import tqdm
+from transformers import ViTConfig
 import matplotlib.pyplot as plt
-from transformers import ViTModel, ViTConfig
+import torch.nn as nn
 
 def main():
     # Hyperparameters
@@ -35,7 +30,6 @@ def main():
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
-
     
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                            download=True, transform=transform_train)
@@ -45,18 +39,7 @@ def main():
                                           download=True, transform=transform_test)
     testloader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
     
-    # Model configurations
-    model_config = {
-        'img_size': 32,
-        'patch_size': 4,
-        'in_channels': 3,
-        'num_classes': 10,
-        'embed_dim': 256,
-        'depth': 6,
-        'num_heads': 8,
-        'mlp_ratio': 4.0
-    }
-
+    # Model configuration
     config = ViTConfig(
         hidden_size=256,
         num_hidden_layers=6,
@@ -75,55 +58,27 @@ def main():
         num_recursions=3,
     )
     
-    # Train Standard ViT
-    print("\n" + "="*60)
-    print("Training Standard Vision Transformer")
-    print("="*60)
-    
-    vit_model = ViTModel(config).to(DEVICE)
-    vit_optimizer = torch.optim.AdamW(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
-    classifier = nn.Linear(config.hidden_size, config.num_labels)
-    
-    vit_train_accs = []
-    vit_test_accs = []
-    
-    for epoch in range(EPOCHS):
-        print(f"\nEpoch {epoch+1}/{EPOCHS}")
-        train_loss, train_acc = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, is_mor=False)
-        test_loss, test_acc = evaluate(vit_model, testloader, DEVICE, is_mor=False)
-        
-        vit_train_accs.append(train_acc)
-        vit_test_accs.append(test_acc)
-        
-        print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%")
-        print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
-    
     # Train MoR-ViT
     print("\n" + "="*60)
-    print("Training MoR Vision Transformer")
+    print("Training MoR Vision Transformer (new_model.py)")
     print("="*60)
-    
-    mor_config = model_config.copy()
-    mor_config['num_recursions'] = 3
-    mor_config['use_kv_sharing'] = False
     
     mor_model = MoRViTModel(config).to(DEVICE)
     mor_optimizer = torch.optim.AdamW(mor_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
+    classifier = nn.Linear(config.hidden_size, config.num_labels)
     
-    # Count parameters
-    vit_params = sum(p.numel() for p in vit_model.parameters())
     mor_params = sum(p.numel() for p in mor_model.parameters())
-    print(f"\nViT Parameters: {vit_params:,}")
-    print(f"MoR-ViT Parameters: {mor_params:,}")
-    print(f"Parameter Reduction: {(1 - mor_params/vit_params)*100:.1f}%")
+    print(f"\nMoR-ViT Parameters: {mor_params:,}")
     
     mor_train_accs = []
     mor_test_accs = []
     
     for epoch in range(EPOCHS):
         print(f"\nEpoch {epoch+1}/{EPOCHS}")
-        train_loss, train_acc = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, is_mor=True)
-        test_loss, test_acc = evaluate(mor_model, testloader, DEVICE, is_mor=True)
+        # Assuming the new model does not return an auxiliary loss, so is_mor=False
+        # If it does, you might need to adjust train_epoch or set is_mor=True
+        train_loss, train_acc = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, is_mor=False)
+        test_loss, test_acc = evaluate(mor_model, testloader, DEVICE, is_mor=False)
         
         mor_train_accs.append(train_acc)
         mor_test_accs.append(test_acc)
@@ -132,33 +87,21 @@ def main():
         print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
     
     # Plot results
-    plt.figure(figsize=(12, 5))
-    
-    plt.subplot(1, 2, 1)
-    plt.plot(vit_train_accs, label='ViT Train', marker='o')
+    plt.figure(figsize=(6, 5))
     plt.plot(mor_train_accs, label='MoR-ViT Train', marker='s')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy (%)')
-    plt.title('Training Accuracy Comparison')
-    plt.legend()
-    plt.grid(True)
-    
-    plt.subplot(1, 2, 2)
-    plt.plot(vit_test_accs, label='ViT Test', marker='o')
     plt.plot(mor_test_accs, label='MoR-ViT Test', marker='s')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy (%)')
-    plt.title('Test Accuracy Comparison')
+    plt.title('MoR-ViT Training and Test Accuracy')
     plt.legend()
     plt.grid(True)
     
     plt.tight_layout()
-    plt.savefig('mor_vit_comparison.png', dpi=150, bbox_inches='tight')
+    plt.savefig('mor_vit_new_model_training.png', dpi=150, bbox_inches='tight')
     plt.show()
     
     print("\n" + "="*60)
     print("Training Complete!")
-    print(f"Final ViT Test Accuracy: {vit_test_accs[-1]:.2f}%")
     print(f"Final MoR-ViT Test Accuracy: {mor_test_accs[-1]:.2f}%")
     print("="*60)
     
