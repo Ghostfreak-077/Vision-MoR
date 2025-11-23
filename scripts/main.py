@@ -1,16 +1,11 @@
-from models.mor_model import MoRViTModel
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from models import VisionTransformer, MoRVisionTransformer
+from models.mor_model import MoRViTModel
 from scripts.training_scripts import train_epoch
 from scripts.evaluating_scripts import evaluate
-import time
-import numpy as np
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 from transformers import ViTModel, ViTConfig
 
@@ -46,17 +41,6 @@ def main():
     testloader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
     
     # Model configurations
-    model_config = {
-        'img_size': 32,
-        'patch_size': 4,
-        'in_channels': 3,
-        'num_classes': 10,
-        'embed_dim': 256,
-        'depth': 6,
-        'num_heads': 8,
-        'mlp_ratio': 4.0
-    }
-
     config = ViTConfig(
         hidden_size=256,
         num_hidden_layers=6,
@@ -74,12 +58,7 @@ def main():
         # MoR specific config
         num_recursions=3,
     )
-    
-    # Train Standard ViT
-    print("\n" + "="*60)
-    print("Training Standard Vision Transformer")
-    print("="*60)
-    
+
     vit_model = ViTModel(config).to(DEVICE)
     vit_optimizer = torch.optim.AdamW(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
     classifier = nn.Linear(config.hidden_size, config.num_labels).to(DEVICE)
@@ -102,11 +81,7 @@ def main():
     print("\n" + "="*60)
     print("Training MoR Vision Transformer")
     print("="*60)
-    
-    mor_config = model_config.copy()
-    mor_config['num_recursions'] = 3
-    mor_config['use_kv_sharing'] = False
-    
+
     mor_model = MoRViTModel(config).to(DEVICE)
     mor_optimizer = torch.optim.AdamW(mor_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
     

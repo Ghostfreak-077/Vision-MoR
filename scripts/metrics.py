@@ -3,7 +3,6 @@ import time
 import torch
 from torch import nn
 from models.mor_model import MoRViTModel
-from models import VisionTransformer
 import torchvision
 import numpy as np
 from scripts.training_scripts import train_epoch
@@ -86,7 +85,7 @@ class MetricsTracker:
         dummy_input = torch.randn(1, *input_size).to(self.device)
         total_ops = 0
         
-        def count_ops_hook(module, input, output):
+        def count_ops_hook(module, input, output=None):
             nonlocal total_ops
             if isinstance(module, nn.Linear):
                 total_ops += input[0].numel() * module.weight.size(0)
@@ -238,9 +237,9 @@ def compare():
     print(f"{'MIXTURE-OF-RECURSIONS VISION TRANSFORMER':^80}")
     print("="*80)
     
-    mor_config = config.copy()
-    mor_config['num_recursions'] = 3
-    mor_config['use_kv_sharing'] = False
+    # mor_config = config.copy()
+    # mor_config['num_recursions'] = 3
+    # mor_config['use_kv_sharing'] = False
     
     mor_model = MoRViTModel(config).to(DEVICE)
     mor_optimizer = torch.optim.AdamW(mor_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
