@@ -1,5 +1,5 @@
 # Vision-MoR
-We have implemented a Mixture of Regressions (MoR) inspired architecture for vision tasks. For now, we have simply compared a basic architecture against a simple transformer. This repository contains the code and instructions to reproduce the results presented below.
+We have implemented a Mixture of Regressions (MoR) inspired architecture for vision tasks. For base model, we have used the ViT architecture from transformers library, with a custom configuration, and compared it against our model. This repository contains the code and instructions to reproduce the results presented below.
 
 ## Installation
 To install the required dependencies, please run the following command:
@@ -8,31 +8,31 @@ To install the required dependencies, please run the following command:
 pip install -r requirements.txt
 ```
 ## Usage
-To compare the MoR and against a simple Transformer, use the following command: 
+To compare the MoR and against the ViT, use the following command: 
 
 ```bash
-python -m scripts.main
+python -m scripts.metrics
 ```
 
 This will run both models on CIFAR-10 dataset and output the results for comparison.
 
 ## Results
-The results of our experiments are as follows:
+The results of our experiment are as follows:
 
-| Metric          | Classic Transformer | Vision MoR (our) | Improvement      |
-|----------------|--------------|------------------|------------------|
-| Parameters (M)       | 4.77        | 2.40            | 49.6%           |
-| Model Size (MB)           | 18.20        | 9.17            | 49.6%           |
-| Inference Latency (ms)   | 140.62       | 104.07          | 26.0%           |
-| Throughput (samples/s)  | 3641.11      | 4919.69        | 35.1%           |
-| GFLOPs                 | 0.31         | 0.20           | 33.5%           |
-| Final Test Accuracy (%)   | 66.59        | 67.28          | 0.69%           |
-| Peak Training Memory (MB) | 4001.23      | 2899.86        | 27.5%           |
+| Metric          | ViT architecture | Vision MoR (our) | Improvement |
+|----------------|------------------|------------------|-------------|
+| Parameters (M)       | 4.83             | 1.68             | 65.3%       |
+| Model Size (MB)           | 18.44            | 6.40             | 65.3%       |
+| Inference Latency (ms)   | 117.38           | 46.24            | 60.6%       |
+| Throughput (samples/s)  | 4361.86          | 11071.98         | 153.8%      |
+| GFLOPs                 | 0.31             | 0.10             | 66.4%       |
+| Final Test Accuracy (%)   | 64.98            | 62.81            | -2.17%      |
+| Peak Training Memory (MB) | 3426.17          | 1375.01          | 59.9%       |
 
 ![results](image.png)
 
 ## Conclusion
-The Vision MoR architecture demonstrates similar Training and Test Accuracy and Loss compared to a classic transformer, while achieving significant improvement in Training time, throughput and efficiency in CIFAR-10 dataset.
+The Vision MoR architecture demonstrates similar Training and Test Accuracy and Loss compared to a classic ViT, while achieving significant improvement in Training time, throughput and efficiency in CIFAR-10 dataset.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
