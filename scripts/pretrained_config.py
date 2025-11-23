@@ -139,15 +139,22 @@ def compare():
 
     # Data preparation
     transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
+        transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465),
+            (0.2023, 0.1994, 0.2010)
+        )
     ])
 
     transform_test = transforms.Compose([
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465),
+            (0.2023, 0.1994, 0.2010)
+        )
     ])
 
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
@@ -188,7 +195,7 @@ def compare():
         'google/vit-base-patch16-224',
         num_labels=10,
         ignore_mismatched_sizes=True
-    )
+    ).to(DEVICE)
     vit_optimizer = torch.optim.AdamW(vit_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
     classifier = nn.Linear(config.hidden_size, config.num_labels).to(DEVICE)
 
@@ -251,7 +258,7 @@ def compare():
         'google/vit-base-patch16-224',
         num_labels=10,
         ignore_mismatched_sizes=True
-    )
+    ).to(DEVICE)
     mor_optimizer = torch.optim.AdamW(mor_model.parameters(), lr=LEARNING_RATE, weight_decay=0.05)
 
     # Get model statistics
