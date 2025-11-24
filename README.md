@@ -11,7 +11,7 @@ pip install -r requirements.txt
 To compare the MoR and against the ViT, use the following command: 
 
 ```bash
-python -m scripts.metrics
+python -m scripts.custom_config.metrics
 ```
 
 This will run both models on CIFAR-10 dataset and output the results for comparison.
