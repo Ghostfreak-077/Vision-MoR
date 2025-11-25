@@ -9,8 +9,114 @@ from scripts.training_scripts import train_epoch
 from scripts.evaluating_scripts import evaluate
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
-from transformers import ViTConfig, ViTModel
+from transformers import PretrainedConfig, ViTModel
 from torch.utils.data import DataLoader
+
+class ViTConfig(PretrainedConfig):
+    r"""
+    This is the configuration class to store the configuration of a [`ViTModel`]. It is used to instantiate an ViT
+    model according to the specified arguments, defining the model architecture. Instantiating a configuration with the
+    defaults will yield a similar configuration to that of the ViT
+    [google/vit-base-patch16-224](https://huggingface.co/google/vit-base-patch16-224) architecture.
+
+    Configuration objects inherit from [`PretrainedConfig`] and can be used to control the model outputs. Read the
+    documentation from [`PretrainedConfig`] for more information.
+
+
+    Args:
+        hidden_size (`int`, *optional*, defaults to 768):
+            Dimensionality of the encoder layers and the pooler layer.
+        num_hidden_layers (`int`, *optional*, defaults to 12):
+            Number of hidden layers in the Transformer encoder.
+        num_attention_heads (`int`, *optional*, defaults to 12):
+            Number of attention heads for each attention layer in the Transformer encoder.
+        intermediate_size (`int`, *optional*, defaults to 3072):
+            Dimensionality of the "intermediate" (i.e., feed-forward) layer in the Transformer encoder.
+        hidden_act (`str` or `function`, *optional*, defaults to `"gelu"`):
+            The non-linear activation function (function or string) in the encoder and pooler. If string, `"gelu"`,
+            `"relu"`, `"selu"` and `"gelu_new"` are supported.
+        hidden_dropout_prob (`float`, *optional*, defaults to 0.0):
+            The dropout probability for all fully connected layers in the embeddings, encoder, and pooler.
+        attention_probs_dropout_prob (`float`, *optional*, defaults to 0.0):
+            The dropout ratio for the attention probabilities.
+        initializer_range (`float`, *optional*, defaults to 0.02):
+            The standard deviation of the truncated_normal_initializer for initializing all weight matrices.
+        layer_norm_eps (`float`, *optional*, defaults to 1e-12):
+            The epsilon used by the layer normalization layers.
+        image_size (`int`, *optional*, defaults to 224):
+            The size (resolution) of each image.
+        patch_size (`int`, *optional*, defaults to 16):
+            The size (resolution) of each patch.
+        num_channels (`int`, *optional*, defaults to 3):
+            The number of input channels.
+        qkv_bias (`bool`, *optional*, defaults to `True`):
+            Whether to add a bias to the queries, keys and values.
+        encoder_stride (`int`, *optional*, defaults to 16):
+           Factor to increase the spatial resolution by in the decoder head for masked image modeling.
+        pooler_output_size (`int`, *optional*):
+           Dimensionality of the pooler layer. If None, defaults to `hidden_size`.
+        pooler_act (`str`, *optional*, defaults to `"tanh"`):
+           The activation function to be used by the pooler. Keys of ACT2FN are supported for Flax and
+           Pytorch, and elements of https://www.tensorflow.org/api_docs/python/tf/keras/activations are
+           supported for Tensorflow.
+
+    Example:
+
+    ```python
+    >>> from transformers import ViTConfig, ViTModel
+
+    >>> # Initializing a ViT vit-base-patch16-224 style configuration
+    >>> configuration = ViTConfig()
+
+    >>> # Initializing a model (with random weights) from the vit-base-patch16-224 style configuration
+    >>> model = ViTModel(configuration)
+
+    >>> # Accessing the model configuration
+    >>> configuration = model.config
+    ```"""
+
+    model_type = "vit"
+
+    def __init__(
+        self,
+        hidden_size=768,
+        num_hidden_layers=12,
+        num_attention_heads=12,
+        intermediate_size=3072,
+        hidden_act="gelu",
+        hidden_dropout_prob=0.0,
+        attention_probs_dropout_prob=0.0,
+        initializer_range=0.02,
+        layer_norm_eps=1e-12,
+        image_size=224,
+        patch_size=16,
+        num_channels=3,
+        qkv_bias=True,
+        encoder_stride=16,
+        pooler_output_size=None,
+        pooler_act="tanh",
+        num_recursions=3,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.hidden_size = hidden_size
+        self.num_hidden_layers = num_hidden_layers
+        self.num_attention_heads = num_attention_heads
+        self.intermediate_size = intermediate_size
+        self.hidden_act = hidden_act
+        self.hidden_dropout_prob = hidden_dropout_prob
+        self.attention_probs_dropout_prob = attention_probs_dropout_prob
+        self.initializer_range = initializer_range
+        self.layer_norm_eps = layer_norm_eps
+        self.image_size = image_size
+        self.patch_size = patch_size
+        self.num_channels = num_channels
+        self.qkv_bias = qkv_bias
+        self.encoder_stride = encoder_stride
+        self.pooler_output_size = pooler_output_size if pooler_output_size else hidden_size
+        self.pooler_act = pooler_act
+        self.num_recursions = num_recursions
 
 class MetricsTracker:
     def __init__(self, device):
@@ -136,15 +242,22 @@ def compare():
     
     # Data preparation
     transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
+        transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465),
+            (0.2023, 0.1994, 0.2010)
+        )
     ])
-    
+
     transform_test = transforms.Compose([
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465),
+            (0.2023, 0.1994, 0.2010)
+        )
     ])
     
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
@@ -156,24 +269,29 @@ def compare():
     testloader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
     
     # Model configurations
-    config = ViTConfig(
-        hidden_size=256,
-        num_hidden_layers=6,
-        num_attention_heads=8,
-        intermediate_size=256 * 4,
-        hidden_act="gelu",
-        hidden_dropout_prob=0.0,
-        attention_probs_dropout_prob=0.0,
-        initializer_range=0.02,
-        layer_norm_eps=1e-12,
-        image_size=32,
-        patch_size=4,
-        num_channels=3,
-        num_labels=10,
-        # MoR specific config
-        num_recursions=3,
-    )
-    
+    # config = ViTConfig(
+    #     hidden_size=256,
+    #     num_hidden_layers=6,
+    #     num_attention_heads=8,
+    #     intermediate_size=256 * 4,
+    #     hidden_act="gelu",
+    #     hidden_dropout_prob=0.0,
+    #     attention_probs_dropout_prob=0.0,
+    #     initializer_range=0.02,
+    #     layer_norm_eps=1e-12,
+    #     image_size=32,
+    #     patch_size=4,
+    #     num_channels=3,
+    #     num_labels=10,
+    #     # MoR specific config
+    #     num_recursions=3,
+    # )
+
+    config = ViTConfig(num_recursions=3).from_pretrained("google/vit-base-patch16-224")
+    # config['num_recursions'] = 3
+    print(config.num_recursions)
+    print(config.hidden_size)
+
     # ========================================================================
     # Train Standard ViT
     # ========================================================================
@@ -196,12 +314,12 @@ def compare():
     # Measure inference latency
     print(f"\n{'Inference Metrics':^80}")
     print("-"*80)
-    vit_inference = tracker.measure_inference_time(vit_model, (3, 32, 32), BATCH_SIZE)
+    vit_inference = tracker.measure_inference_time(vit_model, (3,config.image_size,config.image_size), BATCH_SIZE)
     print(f"Mean Latency: {vit_inference['mean_latency_ms']:.2f} ± {vit_inference['std_latency_ms']:.2f} ms")
     print(f"Throughput: {vit_inference['throughput_samples_per_sec']:.2f} samples/sec")
     
     # Measure FLOPs
-    vit_flops = tracker.measure_flops(vit_model, (3, 32, 32))
+    vit_flops = tracker.measure_flops(vit_model, (3,config.image_size,config.image_size))
     print(f"GFLOPs per sample: {vit_flops['gflops']:.2f}")
     
     vit_train_history = []
@@ -215,9 +333,9 @@ def compare():
         print("-"*40)
         
         train_metrics = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, 
-                                    is_mor=False, tracker=tracker)
+                                    is_pretrained=False, tracker=tracker)
         test_metrics = evaluate(vit_model, testloader, classifier, DEVICE,
-                               is_mor=False, tracker=tracker)
+                               is_pretrained=False, tracker=tracker)
         
         vit_train_history.append(train_metrics)
         vit_test_history.append(test_metrics)
@@ -257,13 +375,13 @@ def compare():
     # Measure inference latency
     print(f"\n{'Inference Metrics':^80}")
     print("-"*80)
-    mor_inference = tracker.measure_inference_time(mor_model, (3, 32, 32), BATCH_SIZE)
+    mor_inference = tracker.measure_inference_time(mor_model, (3,config.image_size,config.image_size), BATCH_SIZE)
     print(f"Mean Latency: {mor_inference['mean_latency_ms']:.2f} ± {mor_inference['std_latency_ms']:.2f} ms")
     print(f"Throughput: {mor_inference['throughput_samples_per_sec']:.2f} samples/sec")
     print(f"Speedup: {mor_inference['throughput_samples_per_sec']/vit_inference['throughput_samples_per_sec']:.2f}x")
     
     # Measure FLOPs
-    mor_flops = tracker.measure_flops(mor_model, (3, 32, 32))
+    mor_flops = tracker.measure_flops(mor_model, (3,config.image_size,config.image_size))
     print(f"GFLOPs per sample: {mor_flops['gflops']:.2f}")
     print(f"FLOPs Reduction: {(1 - mor_flops['gflops']/vit_flops['gflops'])*100:.2f}%")
     
@@ -278,9 +396,9 @@ def compare():
         print("-"*40)
         
         train_metrics = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, 
-                                    is_mor=True, tracker=tracker)
+                                    is_pretrained=True, tracker=tracker)
         test_metrics = evaluate(mor_model, testloader, classifier, DEVICE,
-                               is_mor=True, tracker=tracker)
+                               is_pretrained=True, tracker=tracker)
         
         mor_train_history.append(train_metrics)
         mor_test_history.append(test_metrics)

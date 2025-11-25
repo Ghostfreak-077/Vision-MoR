@@ -1,6 +1,23 @@
 # Vision-MoR
 We have implemented a Mixture of Regressions (MoR) inspired architecture for vision tasks. For base model, we have used the ViT architecture from transformers library, with a custom configuration, and compared it against our model. This repository contains the code and instructions to reproduce the results presented below.
 
+### Configuration
+For current version, we have used the following configuration for both Vision MoR and ViT architectures:
+
+| Parameter               | Value      |
+|------------------------|------------|
+| Image Size             | 32×32      |
+| Patch Size             | 4×4        |
+| Embedding dim          | 256        |
+| Intermediate Size      | 1024       |
+| Attention Heads        | 8          |
+| Transformer Layers     | 6          |
+| No. of Recursions (MoR)| 6          |
+| No. of Recursions (MoR)| 6          |
+| Batch Size             | 512        |
+| Epochs                 | 10         |
+| Learning Rate          | 3e-4       |
+
 ## Installation
 To install the required dependencies, please run the following command:
 

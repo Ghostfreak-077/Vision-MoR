@@ -68,8 +68,8 @@ def main():
     
     for epoch in range(EPOCHS):
         print(f"\nEpoch {epoch+1}/{EPOCHS}")
-        train_loss, train_acc = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, is_mor=False)
-        test_loss, test_acc = evaluate(vit_model, testloader, DEVICE, is_mor=False)
+        train_loss, train_acc = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, is_pretrained=False)
+        test_loss, test_acc = evaluate(vit_model, testloader, classifier, DEVICE, is_pretrained=False)
         
         vit_train_accs.append(train_acc)
         vit_test_accs.append(test_acc)
@@ -97,8 +97,8 @@ def main():
     
     for epoch in range(EPOCHS):
         print(f"\nEpoch {epoch+1}/{EPOCHS}")
-        train_loss, train_acc = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, is_mor=True)
-        test_loss, test_acc = evaluate(mor_model, testloader, DEVICE, is_mor=True)
+        train_loss, train_acc = train_epoch(mor_model, trainloader, mor_optimizer, classifier, DEVICE, is_pretrained=False)
+        test_loss, test_acc = evaluate(mor_model, testloader, classifier, DEVICE, is_pretrained=False)
         
         mor_train_accs.append(train_acc)
         mor_test_accs.append(test_acc)
