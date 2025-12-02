@@ -60,7 +60,7 @@ def train_epoch(model, loader, optimizer, classifier, device, is_pretrained=Fals
     return {
         'loss': total_loss / len(loader),
         'accuracy': 100. * correct / total,
-        'aux_loss': total_aux_loss / len(loader) if is_mor else 0,
+        'aux_loss': total_aux_loss / len(loader),
         'mean_batch_time_ms': np.mean(batch_times) * 1000,
         'samples_per_sec': len(loader.dataset) / sum(batch_times),
         **mem_stats

@@ -41,7 +41,8 @@ class MoRViTEncoder(nn.Module):
 
             for i, layer_module in enumerate(self.layer):
                 # layer_head_mask = head_mask[i] if head_mask is not None else None
-                mask = mask.unsqueeze(1).unsqueeze(2) # (B, 1, 1, N)
+                if len(mask.shape) < 4:
+                    mask = mask.unsqueeze(1).unsqueeze(2) # (B, 1, 1, N)
                 x = layer_module(x, mask)
 
         last_hidden_state = self.last_block(x)

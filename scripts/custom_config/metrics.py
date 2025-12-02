@@ -147,7 +147,7 @@ class MetricsTracker:
             }
         return {'allocated_mb': 0, 'reserved_mb': 0, 'max_allocated_mb': 0, 'max_reserved_mb': 0}
     
-    def measure_inference_time(self, model, input_size, batch_size=32, num_runs=100):
+    def measure_inference_time(self, model, input_size, batch_size=32, num_runs=10):
         """Measure average inference latency"""
         model.eval()
         dummy_input = torch.randn(batch_size, *input_size).to(self.device)
@@ -223,8 +223,8 @@ class MetricsTracker:
         
 def compare():
     # Hyperparameters
-    BATCH_SIZE = 512
-    EPOCHS = 10
+    BATCH_SIZE = 110
+    EPOCHS = 1
     LEARNING_RATE = 3e-4
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -314,13 +314,13 @@ def compare():
     # Measure inference latency
     print(f"\n{'Inference Metrics':^80}")
     print("-"*80)
-    vit_inference = tracker.measure_inference_time(vit_model, (3,config.image_size,config.image_size), BATCH_SIZE)
-    print(f"Mean Latency: {vit_inference['mean_latency_ms']:.2f} ± {vit_inference['std_latency_ms']:.2f} ms")
-    print(f"Throughput: {vit_inference['throughput_samples_per_sec']:.2f} samples/sec")
-    
-    # Measure FLOPs
-    vit_flops = tracker.measure_flops(vit_model, (3,config.image_size,config.image_size))
-    print(f"GFLOPs per sample: {vit_flops['gflops']:.2f}")
+    # vit_inference = tracker.measure_inference_time(vit_model, (3,config.image_size,config.image_size), BATCH_SIZE)
+    # print(f"Mean Latency: {vit_inference['mean_latency_ms']:.2f} ± {vit_inference['std_latency_ms']:.2f} ms")
+    # print(f"Throughput: {vit_inference['throughput_samples_per_sec']:.2f} samples/sec")
+    #
+    # # Measure FLOPs
+    # vit_flops = tracker.measure_flops(vit_model, (3,config.image_size,config.image_size))
+    # print(f"GFLOPs per sample: {vit_flops['gflops']:.2f}")
     
     vit_train_history = []
     vit_test_history = []
@@ -328,25 +328,25 @@ def compare():
     print(f"\n{'Training Progress':^80}")
     print("-"*80)
     
-    for epoch in range(EPOCHS):
-        print(f"\nEpoch {epoch+1}/{EPOCHS}")
-        print("-"*40)
-        
-        train_metrics = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE, 
-                                    is_pretrained=False, tracker=tracker)
-        test_metrics = evaluate(vit_model, testloader, classifier, DEVICE,
-                               is_pretrained=False, tracker=tracker)
-        
-        vit_train_history.append(train_metrics)
-        vit_test_history.append(test_metrics)
-        
-        print(f"Train - Loss: {train_metrics['loss']:.4f}, Acc: {train_metrics['accuracy']:.2f}%, "
-              f"Time: {train_metrics['mean_batch_time_ms']:.2f}ms/batch")
-        print(f"Test  - Loss: {test_metrics['loss']:.4f}, Acc: {test_metrics['accuracy']:.2f}%, "
-              f"Time: {test_metrics['mean_batch_time_ms']:.2f}ms/batch")
-        
-        if DEVICE.type == 'cuda':
-            print(f"Peak Memory: {train_metrics['max_allocated_mb']:.2f} MB")
+    # for epoch in range(EPOCHS):
+    #     print(f"\nEpoch {epoch+1}/{EPOCHS}")
+    #     print("-"*40)
+    #
+    #     train_metrics = train_epoch(vit_model, trainloader, vit_optimizer, classifier, DEVICE,
+    #                                 is_pretrained=False, tracker=tracker)
+    #     test_metrics = evaluate(vit_model, testloader, classifier, DEVICE,
+    #                            is_pretrained=False, tracker=tracker)
+    #
+    #     vit_train_history.append(train_metrics)
+    #     vit_test_history.append(test_metrics)
+    #
+    #     print(f"Train - Loss: {train_metrics['loss']:.4f}, Acc: {train_metrics['accuracy']:.2f}%, "
+    #           f"Time: {train_metrics['mean_batch_time_ms']:.2f}ms/batch")
+    #     print(f"Test  - Loss: {test_metrics['loss']:.4f}, Acc: {test_metrics['accuracy']:.2f}%, "
+    #           f"Time: {test_metrics['mean_batch_time_ms']:.2f}ms/batch")
+    #
+    #     if DEVICE.type == 'cuda':
+    #         print(f"Peak Memory: {train_metrics['max_allocated_mb']:.2f} MB")
     
     # ========================================================================
     # Train MoR-ViT
@@ -375,15 +375,15 @@ def compare():
     # Measure inference latency
     print(f"\n{'Inference Metrics':^80}")
     print("-"*80)
-    mor_inference = tracker.measure_inference_time(mor_model, (3,config.image_size,config.image_size), BATCH_SIZE)
-    print(f"Mean Latency: {mor_inference['mean_latency_ms']:.2f} ± {mor_inference['std_latency_ms']:.2f} ms")
-    print(f"Throughput: {mor_inference['throughput_samples_per_sec']:.2f} samples/sec")
-    print(f"Speedup: {mor_inference['throughput_samples_per_sec']/vit_inference['throughput_samples_per_sec']:.2f}x")
-    
-    # Measure FLOPs
-    mor_flops = tracker.measure_flops(mor_model, (3,config.image_size,config.image_size))
-    print(f"GFLOPs per sample: {mor_flops['gflops']:.2f}")
-    print(f"FLOPs Reduction: {(1 - mor_flops['gflops']/vit_flops['gflops'])*100:.2f}%")
+    # mor_inference = tracker.measure_inference_time(mor_model, (3,config.image_size,config.image_size), BATCH_SIZE)
+    # print(f"Mean Latency: {mor_inference['mean_latency_ms']:.2f} ± {mor_inference['std_latency_ms']:.2f} ms")
+    # print(f"Throughput: {mor_inference['throughput_samples_per_sec']:.2f} samples/sec")
+    # print(f"Speedup: {mor_inference['throughput_samples_per_sec']/vit_inference['throughput_samples_per_sec']:.2f}x")
+    #
+    # # Measure FLOPs
+    # mor_flops = tracker.measure_flops(mor_model, (3,config.image_size,config.image_size))
+    # print(f"GFLOPs per sample: {mor_flops['gflops']:.2f}")
+    # print(f"FLOPs Reduction: {(1 - mor_flops['gflops']/vit_flops['gflops'])*100:.2f}%")
     
     mor_train_history = []
     mor_test_history = []
