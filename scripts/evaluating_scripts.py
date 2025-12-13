@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import numpy as np
 
-def evaluate(model, loader, device, is_mor=False, tracker=None):
+def evaluate(model, loader, classifier, device, is_pretrained=False, tracker=None):
     model.eval()
     total_loss = 0
     correct = 0
@@ -20,12 +20,14 @@ def evaluate(model, loader, device, is_mor=False, tracker=None):
             batch_start = time.perf_counter()
             
             images, labels = images.to(device), labels.to(device)
-            
-            if is_mor:
-                logits, _ = model(images)
+
+            if is_pretrained:
+                logits = model(images).logits
             else:
-                logits = model(images)
-            
+                last_hidden_state = model(images).last_hidden_state
+                cls = last_hidden_state[:, 0]  # (B, hidden_size)
+                logits = classifier(cls)
+
             loss = F.cross_entropy(logits, labels)
             total_loss += loss.item()
             
